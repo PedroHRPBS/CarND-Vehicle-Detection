@@ -40,7 +40,7 @@ I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an 
 
 #### 2. Pipeline Definition
 
-I choose to define a pipeline to extract features from every image of both datasets.  
+I chose to define a pipeline to extract features from every image of both datasets.  
 The pipeliene was defined like that:
 * Color Space
 * Bin Spatial
@@ -234,8 +234,7 @@ For these 10 labels:  [0. 1. 1. 0. 1. 1. 0. 1. 1. 1.]
 
 ### Sliding Window Search
 
-To perform the sliding window search, first, we implemented the sliding window function, in `slide_window()`, where we defined the whole area that should be searched.  
-The area can be seen next:
+To perform the sliding window search, first, we implemented the sliding window function, in `slide_window()`, where we defined the whole area that should be searched. The area can be seen next:
 
 ![alt text][image7]
 
@@ -251,7 +250,7 @@ All the code for this part can be easily find on the highlighted section `Test C
 
 ### Video Implementation
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./output/project_video_output.mp4)
 
 On my Video Implementation, I tried to reduce the wobbly effect by saving the previous detections on a class called `Vehicle_Detected`. 
 
@@ -266,7 +265,6 @@ class Vehicle_Detect():
     def add_boxes(self, box):
         self.prev_boxes.append(box)
         if len(self.prev_boxes) > threshold:
-            # throw out oldest rectangle set(s)
             self.prev_boxes = self.prev_boxes[len(self.prev_boxes) - threshold:]
 ```
 
