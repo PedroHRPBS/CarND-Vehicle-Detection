@@ -13,8 +13,8 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 [image1]: ./output_images/Example.png
 [image2]: ./output_images/bin_spatial.png
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
+[image3]: ./output_images/histogram.png
+[image4]: ./output_images/hsv.png
 [image5]: ./examples/bboxes_and_heat.png
 [image6]: ./examples/labels_map.png
 [image7]: ./examples/output_bboxes.png
@@ -74,12 +74,55 @@ The result can be seen on the next image:
 
 The code for this step is contained in the 7th code cell of the IPython notebook.
 
+Second, I implemented the color histogram feature extraction. Here each channel of the image is converted into a histogram and all three of them are further converted to a single 1-D vector.
+```
+def color_hist(img, nbins=32, bins_range=(0, 256)):
+    # Compute the histogram of the RGB channels separately
+    rhist = np.histogram(img[:,:,0], nbins, bins_range)
+    ghist = np.histogram(img[:,:,1], nbins, bins_range)
+    bhist = np.histogram(img[:,:,2], nbins, bins_range)
+    # Generating bin centers
+    bin_edges = rhist[1]
+    bin_centers = (bin_edges[1:] + bin_edges[0:len(bin_edges)-1])/2
+    # Concatenate the histograms into a single feature vector
+    hist_features = np.concatenate((rhist[0], ghist[0], bhist[0]))
+    # Return the individual histograms, bin_centers and feature vector
+    return rhist, ghist, bhist, bin_centers, hist_features
+```
+The result can be seen on the next image:
+
+![alt text][image3]
+
+#### 2.3 Exploring Color Spaces
+
+The code for this step is contained in the 9th code cell of the IPython notebook.
+
+Third, I choose to test different color spaces and then decide which one of them highlighted the cars the best. After iterating through a list of color spaces, I found that HSV looked like the best option.
+```
+def cvt_color(image, cspace='RGB'):
+    if cspace != 'RGB':
+        if cspace == 'HSV':
+            feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        elif cspace == 'LUV':
+            feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)
+        elif cspace == 'HLS':
+            feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+        elif cspace == 'YUV':
+            feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
+    else: feature_image = np.copy(image) 
+    return feature_image
+```
+An example of how the cars and non-cars look like in HSV color space can be seen next:
+
+![alt text][image4]
+
+
 I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
 Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
 
 
-![alt text][image2]
+
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
