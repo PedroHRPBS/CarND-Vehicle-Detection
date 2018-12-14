@@ -265,7 +265,6 @@ class Vehicle_Detect():
     def add_boxes(self, box):
         self.prev_boxes.append(box)
         if len(self.prev_boxes) > threshold:
-            # throw out oldest rectangle set(s)
             self.prev_boxes = self.prev_boxes[len(self.prev_boxes) - threshold:]
 ```
 
