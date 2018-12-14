@@ -17,8 +17,10 @@ The goals / steps of this project are the following:
 [image4]: ./output_images/hsv.png
 [image5]: ./output_images/hog.png
 [image6]: ./output_images/pipeline.png
-[image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
+[image7]: ./output_images/slide.png
+[image8]: ./output_images/search.png
+[image9]: ./output_images/heatmap.png
+[video1]: ./output/project_video_output.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -199,7 +201,7 @@ Analysing the plots visually, we can already notice that there are differences b
 
 #### 3. Classifier
 
-After extracting all the features from all the images, as we can see on cells number 17 and 18 from the Jupyter Notebook. We defined all of our features X and all of our labels y.
+After extracting all the features from all the images, as we can see on cells number 15 and 16 from the Jupyter Notebook. We defined all of our features X and all of our labels y.
 
 With that, we could split our data between train and test sets:
 ```
@@ -230,45 +232,54 @@ For these 10 labels:  [0. 1. 1. 0. 1. 1. 0. 1. 1. 1.]
 0.1998 Seconds to predict 10 labels with SVC
 ```
 
-
 ### Sliding Window Search
 
-#### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+To perform the sliding window search, first, we implemented the sliding window function, in `slide_window()`, where we defined the whole area that should be searched.  
+The area can be seen next:
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+![alt text][image7]
 
-![alt text][image3]
+With the area defined, we started to search for vehicles inside that area with `search_windows()`. The result:
 
-#### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
+![alt text][image8]
 
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+To reduce the multiple boxes to a single one and remove the false positives, we used a combination of `heat_map` and `labels`, the results achieved can be seen next:
 
-![alt text][image4]
----
+![alt text][image9]
+
+All the code for this part can be easily find on the highlighted section `Test Classifier on Images` inside the Notebook.
 
 ### Video Implementation
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
 Here's a [link to my video result](./project_video.mp4)
 
+On my Video Implementation, I tried to reduce the wobbly effect by saving the previous detections on a class called `Vehicle_Detected`. 
 
-#### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
+```
+# Define a class to store data from video
+class Vehicle_Detect():
+    def __init__(self):
+        # history of boxes from previous frames
+        self.prev_boxes = [] 
+        threshold = 15
+        
+    def add_boxes(self, box):
+        self.prev_boxes.append(box)
+        if len(self.prev_boxes) > threshold:
+            # throw out oldest rectangle set(s)
+            self.prev_boxes = self.prev_boxes[len(self.prev_boxes) - threshold:]
+```
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+With all the previous boxes that contained cars being saved, the result can be used as a threshold and also to make the boxes transitions smoother.
 
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
+```
+for boxes in det.prev_boxes:
+        heat = add_heat(heat, boxes)
 
-### Here are six frames and their corresponding heatmaps:
+    heat = apply_threshold(heat,  1 + len(det.prev_boxes)//2)
+```
 
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
-
+This part of the code can be found on the last 3 code cells of the Notebook.
 
 ---
 
