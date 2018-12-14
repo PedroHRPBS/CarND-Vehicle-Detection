@@ -252,13 +252,12 @@ All the code for this part can be easily find on the highlighted section `Test C
 
 Here's a [link to my video result](./output/project_video_output.mp4)
 
-On my Video Implementation, I tried to reduce the wobbly effect by saving the previous detections on a class called `Vehicle_Detected`. 
+On my Video Implementation, I tried to reduce the wobbly effect by saving the previous detections on a class called `Vehicle_Boxes`. 
 
 ```
 # Define a class to store data from video
-class Vehicle_Detect():
+class Vehicle_Boxes():
     def __init__(self):
-        # history of boxes from previous frames
         self.prev_boxes = [] 
         threshold = 15
         
@@ -271,10 +270,10 @@ class Vehicle_Detect():
 With all the previous boxes that contained cars being saved, the result can be used as a threshold and also to make the boxes transitions smoother.
 
 ```
-for boxes in det.prev_boxes:
+    for boxes in vbox.prev_boxes:
         heat = add_heat(heat, boxes)
 
-    heat = apply_threshold(heat,  1 + len(det.prev_boxes)//2)
+    heat = apply_threshold(heat,  1 + len(vbox.prev_boxes)//2)
 ```
 
 This part of the code can be found on the last 3 code cells of the Notebook.
