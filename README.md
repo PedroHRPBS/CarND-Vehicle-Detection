@@ -287,5 +287,5 @@ This part of the code can be found on the last 3 code cells of the Notebook.
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+Considering the approach that I took, of using the previously described pipeline, one of the major problems that I encountered was with the left side of the screen. I tried augmenting my dataset, tried using different classifiers, tried different search techniques, but I always kept finding false positives, specially on the shadowed areas. To solve that I defined a shorter area of interest. But for future works, I believe that working with Deep Learning, specially YOLO algorithms would be the best way to improve the results and make it more robust. 
 
