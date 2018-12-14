@@ -15,8 +15,8 @@ The goals / steps of this project are the following:
 [image2]: ./output_images/bin_spatial.png
 [image3]: ./output_images/histogram.png
 [image4]: ./output_images/hsv.png
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
+[image5]: ./output_images/hog.png
+[image6]: ./output_images/pipeline.png
 [image7]: ./examples/output_bboxes.png
 [video1]: ./project_video.mp4
 
@@ -70,7 +70,7 @@ The result can be seen on the next image:
 
 ![alt text][image2]
 
-#### 2.2 Color Histogram
+##### 2.2 Color Histogram
 
 The code for this step is contained in the 7th code cell of the IPython notebook.
 
@@ -93,11 +93,11 @@ The result can be seen on the next image:
 
 ![alt text][image3]
 
-#### 2.3 Exploring Color Spaces
+##### 2.3 Exploring Color Spaces
 
 The code for this step is contained in the 9th code cell of the IPython notebook.
 
-Third, I choose to test different color spaces and then decide which one of them highlighted the cars the best. After iterating through a list of color spaces, I found that HSV looked like the best option.
+Third, I chose to test different color spaces and then decide which one of them highlighted the cars the best. After iterating through a list of color spaces, I found that HSV looked like the best option.
 ```
 def cvt_color(image, cspace='RGB'):
     if cspace != 'RGB':
@@ -116,21 +116,120 @@ An example of how the cars and non-cars look like in HSV color space can be seen
 
 ![alt text][image4]
 
+##### 2.4 HOG
 
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
+The code for this step is contained in the 11th code cell of the IPython notebook.
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+Finally, the HOG extraction. For this part, I based myself on an online article (https://medium.com/@mohankarthik/feature-extraction-for-vehicle-detection-using-hog-d99354a84d10) to decide which where the best parameters to use on my HOG extraction.
+
+```
+def get_hog_features(img, orient, pix_per_cell, cell_per_block, 
+                        vis=False, feature_vec=True):
+    # Call with two outputs if vis==True
+    if vis == True:
+        features, hog_image = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                  cells_per_block=(cell_per_block, cell_per_block), block_norm= 'L2-Hys',
+                                  transform_sqrt=True, 
+                                  visualise=vis, feature_vector=feature_vec)
+        return features, hog_image
+    # Otherwise call with one output
+    else:      
+        features = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
+                       cells_per_block=(cell_per_block, cell_per_block), block_norm= 'L2-Hys',
+                       transform_sqrt=True, 
+                       visualise=vis, feature_vector=feature_vec)
+        return features
+```
+
+So, I chose to use `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`, here is an example of how it looks like:
+
+![alt text][image5]
 
 
+##### 2.5 Final Pipeline
 
+The code for this step is contained in the 13th code cell of the IPython notebook.
 
-#### 2. Explain how you settled on your final choice of HOG parameters.
+So, my final pipeline does the following:
+* Read an image
+* Convert color
+* Bin spatial
+* Color histogram
+* HOG
 
-I tried various combinations of parameters and...
+```
+def extract_features(imgs, cspace='RGB', spatial_size=(32, 32),
+                        hist_bins=32, hist_range=(0, 256), orient=8, 
+                        pix_per_cell=8, cell_per_block=2, hog_channel=0):
+    # Create a list to append feature vectors to
+    features = []
+    # Iterate through the list of images
+    for img in imgs:
+        # Read in each one by one
+        img = mpimg.imread(img)
+        # apply color conversion if other than 'RGB'
+        feature_image = cvt_color(img, cspace)
+        # Apply bin_spatial() to get spatial color features
+        spatial_features = bin_spatial(feature_image, size=spatial_size)
+        # Apply color_hist() to get color histogram features
+        _,_,_,_,color_features = color_hist(feature_image, nbins=hist_bins, bins_range=hist_range)
+        # Apply get_hog_features() to get HOG features
+        # Call get_hog_features() with vis=False, feature_vec=True
+        if hog_channel == 'ALL':
+            hog_features = []
+            for channel in range(feature_image.shape[2]):
+                hog_features.append(get_hog_features(feature_image[:,:,channel], 
+                                    orient, pix_per_cell, cell_per_block, 
+                                    vis=False, feature_vec=True))
+            hog_features = np.ravel(hog_features)        
+        else:
+            hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, 
+                        pix_per_cell, cell_per_block, vis=False, feature_vec=True)
+        # Append the new feature vector to the features list
+        features.append(np.concatenate((spatial_features, color_features, hog_features)))
+    # Return list of feature vectors
+    return features
+```
 
-#### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
+Next, you can see the plots of the features from a Vehicle and from a Non-Vehicle image:
 
-I trained a linear SVM using...
+![alt text][image6]
+
+Analysing the plots visually, we can already notice that there are differences between the features of the images, so that can be a good indicator that the classifier will perform well.
+
+#### 3. Classifier
+
+After extracting all the features from all the images, as we can see on cells number 17 and 18 from the Jupyter Notebook. We defined all of our features X and all of our labels y.
+
+With that, we could split our data between train and test sets:
+```
+rand_state = np.random.randint(0, 100)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=rand_state)
+```
+
+We trained a normalizer on our X_train dataset and apply it both in our X_train and X_test.
+```
+# Fit a per-column scaler
+X_scaler = StandardScaler().fit(X_train)
+# Apply the scaler to X
+X_train = X_scaler.transform(X_train)
+X_test = X_scaler.transform(X_test)
+```
+The normalization proved to be efficient as we calculated the mean and standard deviation of the features:
+```
+X_train mean: -6.765167911465336e-18
+X_train standard deviation: 0.9959266633137144
+```
+
+For our classifier we chose to work with the `clf = SVC()`, that has a `rbf` kernel. And achieved the following results:
+```
+388.21 Seconds to train SVC...
+Test Accuracy of SVC =  0.9913
+My SVC predicts:  [0. 1. 1. 0. 1. 1. 0. 1. 1. 1.]
+For these 10 labels:  [0. 1. 1. 0. 1. 1. 0. 1. 1. 1.]
+0.1998 Seconds to predict 10 labels with SVC
+```
+
 
 ### Sliding Window Search
 
